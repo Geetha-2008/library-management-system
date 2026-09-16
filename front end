@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library Management System</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            background: #f4f6f8;
+        }
+
+        header {
+            background: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1100px;
+            margin: 30px auto;
+        }
+
+        .form-box,
+        .table-box {
+            background: white;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px #ccc;
+        }
+
+        h2 {
+            color: #2c3e50;
+        }
+
+        .form-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        input,
+        select {
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            width: 100%;
+        }
+
+        button {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        .add {
+            background: #27ae60;
+        }
+
+        .edit {
+            background: #3498db;
+        }
+
+        .delete {
+            background: #e74c3c;
+        }
+
+        .cancel {
+            background: #7f8c8d;
+        }
+
+        .search {
+            margin-bottom: 20px;
+            padding: 12px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: center;
+        }
+
+        th {
+            background: #34495e;
+            color: white;
+        }
+
+        @media(max-width:700px) {
+            .form-group {
+                grid-template-columns: 1fr;
+            }
+
+            table {
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>📚 Library Management System</h1>
+    <p>CRUD Web Application</p>
+</header>
+
+<div class="container">
+
+    <!-- FORM -->
+
+    <div class="form-box">
+
+        <h2 id="formTitle">Add Book</h2>
+
+        <div class="form-group">
+
+            <input type="text" id="bookId"
+                   placeholder="Book ID">
+
+            <input type="text" id="bookName"
+                   placeholder="Book Name">
+
+            <input type="text" id="author"
+                   placeholder="Author Name">
+
+            <input type="text" id="category"
+                   placeholder="Category">
+
+            <input type="number" id="year"
+                   placeholder="Publication Year">
+
+            <select id="status">
+                <option value="Available">Available</option>
+                <option value="Borrowed">Borrowed</option>
+            </select>
+
+        </div>
+
+        <button class="add"
+                id="submitBtn"
+                onclick="saveBook()">
+            Add Book
+        </button>
+
+        <button class="cancel"
+                id="cancelBtn"
+                onclick="cancelEdit()"
+                style="display:none;">
+            Cancel
+        </button>
+
+    </div>
+
+
+    <!-- SEARCH -->
+
+    <div class="form-box">
+
+        <h2>Search Books</h2>
+
+        <input class="search"
+               type="text"
+               id="search"
+               placeholder="Search book..."
+               onkeyup="searchBooks()">
+
+    </div>
+
+
+    <!-- TABLE -->
+
+    <div class="table-box">
+
+        <h2>📖 Book List</h2>
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>ID</th>
+                    <th>Book Name</th>
+                    <th>Author</th>
+                    <th>Category</th>
+                    <th>Year</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+
+            </thead>
+
+            <tbody id="bookTable"></tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+
+<script>
+
+const API = "http://localhost:5000/books";
+
+let books = [];
+
+let editId = null;
+
+
+// GET BOOKS
+
+async function getBooks() {
+
+    const response = await fetch(API);
+
+    books = await response.json();
+
+    displayBooks(books);
+}
+
+
+// DISPLAY BOOKS
+
+function displayBooks(data) {
+
+    const table = document.getElementById("bookTable");
+
+    table.innerHTML = "";
+
+    if (data.length === 0) {
+
+        table.innerHTML = `
+            <tr>
+                <td colspan="7">
+                    No books found
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
+
+
+    data.forEach(book => {
+
+        table.innerHTML += `
+
+        <tr>
+
+            <td>${book.id}</td>
+
+            <td>${book.name}</td>
+
+            <td>${book.author}</td>
+
+            <td>${book.category}</td>
+
+            <td>${book.year}</td>
+
+            <td>${book.status}</td>
+
+            <td>
+
+                <button class="edit"
+                    onclick="editBook(${book.id})">
+                    Edit
+                </button>
+
+                <button class="delete"
+                    onclick="deleteBook(${book.id})">
+                    Delete
+                </button>
+
+            </td>
+
+        </tr>
+
+        `;
+
+    });
+
+}
+
+
+// ADD / UPDATE
+
+async function saveBook() {
+
+    const book = {
+
+        name: document.getElementById("bookName").value,
+
+        author: document.getElementById("author").value,
+
+        category: document.getElementById("category").value,
+
+        year: document.getElementById("year").value,
+
+        status: document.getElementById("status").value
+
+    };
+
+
+    if (!book.name ||
+        !book.author ||
+        !book.category ||
+        !book.year) {
+
+        alert("Please fill all fields!");
+
+        return;
+    }
+
+
+    let response;
+
+
+    // UPDATE
+
+    if (editId !== null) {
+
+        response = await fetch(
+            `${API}/${editId}`,
+            {
+                method: "PUT",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify(book)
+            }
+        );
+
+        alert("Book updated successfully!");
+
+        editId = null;
+
+        document.getElementById("formTitle")
+            .innerText = "Add Book";
+
+        document.getElementById("submitBtn")
+            .innerText = "Add Book";
+
+        document.getElementById("cancelBtn")
+            .style.display = "none";
+
+    }
+
+    // ADD
+
+    else {
+
+        const id =
+            document.getElementById("bookId").value;
+
+        if (!id) {
+
+            alert("Please enter Book ID!");
+
+            return;
+        }
+
+        book.id = id;
+
+
+        response = await fetch(API, {
+
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify(book)
+
+        });
+
+        alert("Book added successfully!");
+
+    }
+
+
+    clearForm();
+
+    getBooks();
+}
+
+
+// EDIT
+
+async function editBook(id) {
+
+    const response =
+        await fetch(`${API}/${id}`);
+
+    const book =
+        await response.json();
+
+
+    document.getElementById("bookId").value =
+        book.id;
+
+    document.getElementById("bookName").value =
+        book.name;
+
+    document.getElementById("author").value =
+        book.author;
+
+    document.getElementById("category").value =
+        book.category;
+
+    document.getElementById("year").value =
+        book.year;
+
+    document.getElementById("status").value =
+        book.status;
+
+
+    editId = id;
+
+
+    document.getElementById("formTitle")
+        .innerText = "Edit Book";
+
+    document.getElementById("submitBtn")
+        .innerText = "Update Book";
+
+    document.getElementById("cancelBtn")
+        .style.display = "inline-block";
+
+}
+
+
+// DELETE
+
+async function deleteBook(id) {
+
+    if (!confirm("Delete this book?")) {
+
+        return;
+    }
+
+
+    await fetch(`${API}/${id}`, {
+
+        method: "DELETE"
+
+    });
+
+
+    alert("Book deleted successfully!");
+
+    getBooks();
+}
+
+
+// SEARCH
+
+function searchBooks() {
+
+    const value =
+        document.getElementById("search")
+        .value
+        .toLowerCase();
+
+
+    const result = books.filter(book =>
+
+        book.name.toLowerCase().includes(value) ||
+
+        book.author.toLowerCase().includes(value) ||
+
+        book.category.toLowerCase().includes(value)
+
+    );
+
+
+    displayBooks(result);
+}
+
+
+// CLEAR
+
+function clearForm() {
+
+    document.getElementById("bookId").value = "";
+
+    document.getElementById("bookName").value = "";
+
+    document.getElementById("author").value = "";
+
+    document.getElementById("category").value = "";
+
+    document.getElementById("year").value = "";
+
+    document.getElementById("status").value =
+        "Available";
+}
+
+
+// CANCEL
+
+function cancelEdit() {
+
+    editId = null;
+
+    clearForm();
+
+    document.getElementById("formTitle")
+        .innerText = "Add Book";
+
+    document.getElementById("submitBtn")
+        .innerText = "Add Book";
+
+    document.getElementById("cancelBtn")
+        .style.display = "none";
+}
+
+
+// START
+
+getBooks();
+
+</script>
+
+</body>
+</html>
