@@ -1,0 +1,246 @@
+const express = require("express");
+const cors = require("cors");
+
+const app = express();
+
+const PORT = 5000;
+
+
+// Middleware
+
+app.use(cors());
+
+app.use(express.json());
+
+
+// Temporary database
+
+let books = [
+    {
+        id: 1,
+        name: "Java Programming",
+        author: "Herbert Schildt",
+        category: "Programming",
+        year: 2022,
+        status: "Available"
+    },
+
+    {
+        id: 2,
+        name: "Python Basics",
+        author: "Mark Lutz",
+        category: "Programming",
+        year: 2023,
+        status: "Borrowed"
+    }
+];
+
+
+// ===============================
+// GET ALL BOOKS
+// ===============================
+
+app.get("/books", (req, res) => {
+
+    res.json(books);
+
+});
+
+
+// ===============================
+// GET SINGLE BOOK
+// ===============================
+
+app.get("/books/:id", (req, res) => {
+
+    const id = Number(req.params.id);
+
+    const book = books.find(
+        b => b.id === id
+    );
+
+
+    if (!book) {
+
+        return res.status(404).json({
+            message: "Book not found"
+        });
+
+    }
+
+
+    res.json(book);
+
+});
+
+
+// ===============================
+// ADD BOOK
+// ===============================
+
+app.post("/books", (req, res) => {
+
+    const { id, name, author, category, year, status } =
+        req.body;
+
+
+    if (!id || !name || !author ||
+        !category || !year) {
+
+        return res.status(400).json({
+            message: "All fields are required"
+        });
+
+    }
+
+
+    const bookId = Number(id);
+
+
+    // Check duplicate ID
+
+    const exists = books.find(
+        b => b.id === bookId
+    );
+
+
+    if (exists) {
+
+        return res.status(400).json({
+            message: "Book ID already exists"
+        });
+
+    }
+
+
+    const newBook = {
+
+        id: bookId,
+
+        name: name,
+
+        author: author,
+
+        category: category,
+
+        year: Number(year),
+
+        status: status || "Available"
+
+    };
+
+
+    books.push(newBook);
+
+
+    res.status(201).json({
+
+        message: "Book added successfully",
+
+        book: newBook
+
+    });
+
+});
+
+
+// ===============================
+// UPDATE BOOK
+// ===============================
+
+app.put("/books/:id", (req, res) => {
+
+    const id = Number(req.params.id);
+
+
+    const index = books.findIndex(
+        b => b.id === id
+    );
+
+
+    if (index === -1) {
+
+        return res.status(404).json({
+            message: "Book not found"
+        });
+
+    }
+
+
+    books[index] = {
+
+        id: id,
+
+        name: req.body.name,
+
+        author: req.body.author,
+
+        category: req.body.category,
+
+        year: Number(req.body.year),
+
+        status: req.body.status
+
+    };
+
+
+    res.json({
+
+        message: "Book updated successfully",
+
+        book: books[index]
+
+    });
+
+});
+
+
+// ===============================
+// DELETE BOOK
+// ===============================
+
+app.delete("/books/:id", (req, res) => {
+
+    const id = Number(req.params.id);
+
+
+    const index = books.findIndex(
+        b => b.id === id
+    );
+
+
+    if (index === -1) {
+
+        return res.status(404).json({
+            message: "Book not found"
+        });
+
+    }
+
+
+    const deletedBook =
+        books.splice(index, 1);
+
+
+    res.json({
+
+        message: "Book deleted successfully",
+
+        book: deletedBook[0]
+
+    });
+
+});
+
+
+// ===============================
+// START SERVER
+// ===============================
+
+app.listen(PORT, () => {
+
+    console.log(
+        `Backend server running at http://localhost:${PORT}`
+    );
+
+});
